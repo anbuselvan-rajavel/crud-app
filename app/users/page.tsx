@@ -61,10 +61,13 @@ export default function UsersPage() {
   const fetchUsers = async (page: number) => {
     try {
       setIsLoading(true)
-      const res = await fetch(`https://reqres.in/api/users?page=${page}`)
+      const res = await fetch(`https://reqres.in/api/users?page=${page}`, {
+        headers: {
+          'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
+        }
+      })
       if (!res.ok) throw new Error('Failed to fetch users')
       const { data } = await res.json()
-      // Add mock status for demonstration
       const usersWithStatus = data.map((user: Omit<User, 'status'>) => ({
         ...user,
         status: Math.random() > 0.5 ? 'active' : 'inactive'
@@ -91,7 +94,12 @@ export default function UsersPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`https://reqres.in/api/users/${id}`, { method: 'DELETE' })
+      await fetch(`https://reqres.in/api/users/${id}`, { 
+        method: 'DELETE',
+        headers: {
+          'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
+        }
+      })
       setUsers(prev => prev.filter(user => user.id !== id))
     } catch (error) {
       console.error('Delete error:', error)
@@ -101,14 +109,32 @@ export default function UsersPage() {
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (dialogType === 'edit' && selectedUser) {
-        const updatedUser = { ...selectedUser, ...values }
-        setUsers(prev => prev.map(u => u.id === selectedUser.id ? updatedUser : u))
+        const res = await fetch(`https://reqres.in/api/users/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
+          },
+          body: JSON.stringify(values)
+        })
+        const data = await res.json()
+        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...data } : u))
       } else if (dialogType === 'create') {
+        const res = await fetch('https://reqres.in/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
+          },
+          body: JSON.stringify(values)
+        })
+        const data = await res.json()
         const newUser = {
-          ...values,
+          ...data,
           id: Date.now(),
-          avatar: `https://reqres.in/img/faces/${Math.floor(Math.random() * 12) + 1}-image.jpg`
-        }
+          avatar: `https://reqres.in/img/faces/${Math.floor(Math.random() * 12) + 1}-image.jpg`,
+          status: 'active'
+        } as User
         setUsers(prev => [newUser, ...prev])
       }
       setDialogType(null)
@@ -117,6 +143,7 @@ export default function UsersPage() {
       console.error('Submit error:', error)
     }
   }
+
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
