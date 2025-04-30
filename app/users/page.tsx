@@ -1,158 +1,223 @@
 // app/users/page.tsx
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Eye, Pencil, Trash, Search, X } from 'lucide-react'
-import Image from 'next/image'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Eye, Pencil, Trash, Search, X } from "lucide-react";
+import Image from "next/image";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 const formSchema = z.object({
-  first_name: z.string().min(2, 'First name must be at least 2 characters'),
-  last_name: z.string().min(2, 'Last name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  status: z.enum(['active', 'inactive']),
-})
+  first_name: z.string().min(2, "First name must be at least 2 characters"),
+  last_name: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  status: z.enum(["active", "inactive"]),
+});
 
 interface User {
-  id: number
-  email: string
-  first_name: string
-  last_name: string
-  avatar: string
-  status: 'active' | 'inactive'
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  avatar: string;
+  status: "active" | "inactive";
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [dialogType, setDialogType] = useState<'view' | 'edit' | 'create' | null>(null)
-  const [page, setPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [dialogType, setDialogType] = useState<
+    "view" | "edit" | "create" | null
+  >(null);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      first_name: '',
-      last_name: '',
-      email: '',
-      status: 'active',
+      first_name: "",
+      last_name: "",
+      email: "",
+      status: "active",
     },
-  })
+  });
 
   useEffect(() => {
-    form.reset(selectedUser || {
-      first_name: '',
-      last_name: '',
-      email: '',
-      status: 'active',
-    })
-  }, [selectedUser, form])
+    form.reset(
+      selectedUser || {
+        first_name: "",
+        last_name: "",
+        email: "",
+        status: "active",
+      }
+    );
+  }, [selectedUser, form]);
 
   const fetchUsers = async (page: number) => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const res = await fetch(`https://reqres.in/api/users?page=${page}`, {
         headers: {
-          'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
-        }
-      })
-      if (!res.ok) throw new Error('Failed to fetch users')
-      const { data } = await res.json()
-      const usersWithStatus = data.map((user: Omit<User, 'status'>) => ({
-        ...user,
-        status: Math.random() > 0.5 ? 'active' : 'inactive'
-      } as User))
-      setUsers(usersWithStatus)
+          "x-api-key": process.env.NEXT_PUBLIC_REQRES_API_KEY!,
+        },
+      });
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const { data } = await res.json();
+      const usersWithStatus = data.map(
+        (user: Omit<User, "status">) =>
+          ({
+            ...user,
+            status: Math.random() > 0.5 ? "active" : "inactive",
+          } as User)
+      );
+      setUsers(usersWithStatus);
     } catch (error) {
-      console.error('Fetch error:', error)
+      console.error("Fetch error:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchUsers(page)
-  }, [page])
+    fetchUsers(page);
+  }, [page]);
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch = `${user.first_name} ${user.last_name} ${user.email}`
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+      .includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const handleDelete = async (id: number) => {
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+
     try {
-      await fetch(`https://reqres.in/api/users/${id}`, { 
-        method: 'DELETE',
+      await fetch(`https://reqres.in/api/users/${userToDelete}`, {
+        method: "DELETE",
         headers: {
-          'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
-        }
-      })
-      setUsers(prev => prev.filter(user => user.id !== id))
+          "x-api-key": process.env.NEXT_PUBLIC_REQRES_API_KEY!,
+        },
+      });
+      setUsers((prev) => prev.filter((user) => user.id !== userToDelete));
+      toast.success("User deleted successfully!"); // Show success toast
     } catch (error) {
-      console.error('Delete error:', error)
+      console.error("Delete error:", error);
+      toast.error("Failed to delete user."); // Show error toast
+    } finally {
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     }
-  }
+  };
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      if (dialogType === 'edit' && selectedUser) {
-        const res = await fetch(`https://reqres.in/api/users/${selectedUser.id}`, {
-          method: 'PUT',
+      if (dialogType === "edit" && selectedUser) {
+        const res = await fetch(
+          `https://reqres.in/api/users/${selectedUser.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": process.env.NEXT_PUBLIC_REQRES_API_KEY!,
+            },
+            body: JSON.stringify(values),
+          }
+        );
+        const data = await res.json();
+        setUsers((prev) =>
+          prev.map((u) => (u.id === selectedUser.id ? { ...u, ...data } : u))
+        );
+        toast.success("User updated successfully!"); // Show success toast
+      } else if (dialogType === "create") {
+        const res = await fetch("https://reqres.in/api/users", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_REQRES_API_KEY!,
           },
-          body: JSON.stringify(values)
-        })
-        const data = await res.json()
-        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...data } : u))
-      } else if (dialogType === 'create') {
-        const res = await fetch('https://reqres.in/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.NEXT_PUBLIC_REQRES_API_KEY!
-          },
-          body: JSON.stringify(values)
-        })
-        const data = await res.json()
+          body: JSON.stringify(values),
+        });
+        const data = await res.json();
         const newUser = {
           ...data,
           id: Date.now(),
-          avatar: `https://reqres.in/img/faces/${Math.floor(Math.random() * 12) + 1}-image.jpg`,
-          status: 'active'
-        } as User
-        setUsers(prev => [newUser, ...prev])
+          avatar: `https://reqres.in/img/faces/${
+            Math.floor(Math.random() * 12) + 1
+          }-image.jpg`,
+          status: "active",
+        } as User;
+        setUsers((prev) => [newUser, ...prev]);
+        toast.success("User created successfully!"); // Show success toast
       }
-      setDialogType(null)
-      setSelectedUser(null)
+      setDialogType(null);
+      setSelectedUser(null);
     } catch (error) {
-      console.error('Submit error:', error)
+      console.error("Submit error:", error);
+      toast.error(
+        dialogType === "create"
+          ? "Failed to create user."
+          : "Failed to update user."
+      ); // Show error toast
     }
-  }
-
-
+  };
+  
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">User Management</h1>
-        <Button onClick={() => {
-          setDialogType('create')
-          setSelectedUser(null)
-        }}>
+        <Button
+          onClick={() => {
+            setDialogType("create");
+            setSelectedUser(null);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add User
         </Button>
       </div>
@@ -170,24 +235,26 @@ export default function UsersPage() {
           {searchTerm && (
             <X
               className="absolute right-3 top-3 h-4 w-4 cursor-pointer"
-              onClick={() => setSearchTerm('')}
+              onClick={() => setSearchTerm("")}
             />
           )}
         </div>
-        
-        <Select 
-  value={statusFilter} 
-  onValueChange={(value: 'all' | 'active' | 'inactive') => setStatusFilter(value)}
->
-  <SelectTrigger className="w-[180px]">
-    <SelectValue placeholder="Filter by status" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All Statuses</SelectItem>
-    <SelectItem value="active">Active</SelectItem>
-    <SelectItem value="inactive">Inactive</SelectItem>
-  </SelectContent>
-</Select>
+
+        <Select
+          value={statusFilter}
+          onValueChange={(value: "all" | "active" | "inactive") =>
+            setStatusFilter(value)
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* User Table */}
@@ -205,11 +272,15 @@ export default function UsersPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                <TableCell colSpan={5} className="text-center">
+                  Loading...
+                </TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">No users found</TableCell>
+                <TableCell colSpan={5} className="text-center">
+                  No users found
+                </TableCell>
               </TableRow>
             ) : (
               filteredUsers.map((user) => (
@@ -223,14 +294,18 @@ export default function UsersPage() {
                       className="rounded-full"
                     />
                   </TableCell>
-                  <TableCell>{user.first_name} {user.last_name}</TableCell>
+                  <TableCell>
+                    {user.first_name} {user.last_name}
+                  </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      user.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        user.status === "active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {user.status}
                     </span>
                   </TableCell>
@@ -239,8 +314,8 @@ export default function UsersPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setSelectedUser(user)
-                        setDialogType('view')
+                        setSelectedUser(user);
+                        setDialogType("view");
                       }}
                     >
                       <Eye className="h-4 w-4" />
@@ -249,8 +324,8 @@ export default function UsersPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setSelectedUser(user)
-                        setDialogType('edit')
+                        setSelectedUser(user);
+                        setDialogType("edit");
                       }}
                     >
                       <Pencil className="h-4 w-4" />
@@ -258,7 +333,10 @@ export default function UsersPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(user.id)}
+                      onClick={() => {
+                        setUserToDelete(user.id);
+                        setDeleteDialogOpen(true);
+                      }}
                     >
                       <Trash className="h-4 w-4 text-red-500" />
                     </Button>
@@ -274,7 +352,7 @@ export default function UsersPage() {
       <div className="flex justify-between items-center mt-4">
         <Button
           variant="outline"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
         >
           Previous
@@ -282,28 +360,47 @@ export default function UsersPage() {
         <span className="text-sm">Page {page}</span>
         <Button
           variant="outline"
-          onClick={() => setPage(p => p + 1)}
+          onClick={() => setPage((p) => p + 1)}
           disabled={page >= 2}
         >
           Next
         </Button>
       </div>
-      
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+
       {/* Dialog for viewing/editing users */}
-      <Dialog open={!!dialogType} onOpenChange={(open) => !open && setDialogType(null)}>
+      <Dialog
+        open={!!dialogType}
+        onOpenChange={(open) => !open && setDialogType(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {dialogType === 'create' ? 'Create User' 
-               : dialogType === 'edit' ? 'Edit User' 
-               : 'User Details'}
+              {dialogType === "create"
+                ? "Create User"
+                : dialogType === "edit"
+                ? "Edit User"
+                : "User Details"}
             </DialogTitle>
           </DialogHeader>
-          
-          {dialogType === 'view' ? (
+
+          {dialogType === "view" ? (
             <div className="space-y-4">
               <Image
-                src={selectedUser?.avatar || ''}
+                src={selectedUser?.avatar || ""}
                 alt={`${selectedUser?.first_name} ${selectedUser?.last_name}`}
                 width={80}
                 height={80}
@@ -311,7 +408,9 @@ export default function UsersPage() {
               />
               <div className="space-y-2">
                 <Label>Name</Label>
-                <p>{selectedUser?.first_name} {selectedUser?.last_name}</p>
+                <p>
+                  {selectedUser?.first_name} {selectedUser?.last_name}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
@@ -323,10 +422,13 @@ export default function UsersPage() {
               </div>
             </div>
           ) : (
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-4"
+            >
               <div className="space-y-2">
                 <Label>First Name</Label>
-                <Input {...form.register('first_name')} />
+                <Input {...form.register("first_name")} />
                 {form.formState.errors.first_name && (
                   <p className="text-red-500 text-sm">
                     {form.formState.errors.first_name.message}
@@ -335,7 +437,7 @@ export default function UsersPage() {
               </div>
               <div className="space-y-2">
                 <Label>Last Name</Label>
-                <Input {...form.register('last_name')} />
+                <Input {...form.register("last_name")} />
                 {form.formState.errors.last_name && (
                   <p className="text-red-500 text-sm">
                     {form.formState.errors.last_name.message}
@@ -344,7 +446,7 @@ export default function UsersPage() {
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input {...form.register('email')} />
+                <Input {...form.register("email")} />
                 {form.formState.errors.email && (
                   <p className="text-red-500 text-sm">
                     {form.formState.errors.email.message}
@@ -354,8 +456,10 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
-                  value={form.watch('status')}
-                  onValueChange={(value) => form.setValue('status', value as 'active' | 'inactive')}
+                  value={form.watch("status")}
+                  onValueChange={(value) =>
+                    form.setValue("status", value as "active" | "inactive")
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
@@ -368,13 +472,34 @@ export default function UsersPage() {
               </div>
               <DialogFooter>
                 <Button type="submit">
-                  {dialogType === 'create' ? 'Create' : 'Save Changes'}
+                  {dialogType === "create" ? "Create" : "Save Changes"}
                 </Button>
               </DialogFooter>
             </form>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  )
+  );
 }
